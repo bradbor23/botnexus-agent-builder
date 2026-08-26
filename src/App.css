@@ -412,8 +412,135 @@ textarea.profile-field__input {
   border-top: 1px dashed var(--cf-border);
 }
 
+.profile-field__warn {
+  font-size: 0.8rem;
+  color: #b45309;
+  line-height: 1.4;
+}
+
+@media (prefers-color-scheme: dark) {
+  .profile-field__warn {
+    color: #fbbf24;
+  }
+}
+
+.wizard__status--warn {
+  color: #b45309;
+}
+
+@media (prefers-color-scheme: dark) {
+  .wizard__status--warn {
+    color: #fbbf24;
+  }
+}
+
+/* Gateway connector ----------------------------------------------------- */
+.gateway {
+  border: 1px solid var(--cf-border);
+  border-radius: 12px;
+  background: var(--cf-surface);
+  padding: 4px;
+}
+
+.gateway__toggle {
+  width: 100%;
+  text-align: left;
+  appearance: none;
+  border: none;
+  background: none;
+  font: inherit;
+  font-weight: 600;
+  color: var(--cf-text);
+  padding: 12px 14px;
+  cursor: pointer;
+}
+
+.gateway__body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 0 14px 14px;
+}
+
+.gateway__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.gateway__item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid var(--cf-border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: var(--cf-editor-bg);
+}
+
+.gateway__item-main {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  flex: 1;
+}
+
+.gateway__item-name {
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.gateway__badge {
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--cf-text-muted);
+  border: 1px solid var(--cf-border);
+  border-radius: 6px;
+  padding: 1px 6px;
+}
+
+.gateway__item-id {
+  font-family: var(--cf-mono);
+  font-size: 0.78rem;
+  color: var(--cf-text-muted);
+  background: none;
+  padding: 0;
+}
+
+.gateway__item-model {
+  font-size: 0.8rem;
+  color: var(--cf-text-muted);
+}
+
+.gateway__item-desc {
+  font-size: 0.82rem;
+  color: var(--cf-text-muted);
+  line-height: 1.4;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.gateway__item .cf-btn {
+  flex-shrink: 0;
+}
+
 @media (max-width: 640px) {
   .profile-form {
     grid-template-columns: 1fr;
+  }
+
+  .gateway__item {
+    flex-direction: column;
+    align-items: stretch;
   }
 }

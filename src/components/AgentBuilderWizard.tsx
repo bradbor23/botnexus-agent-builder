@@ -32,7 +32,9 @@ import {
   PROVIDERS,
 } from "../lib/providers";
 import { copyToClipboard, downloadAgentBundle } from "../lib/download";
+import type { GatewayAgentSummary } from "../lib/gateway";
 import { WizardHelp } from "./WizardHelp";
+import { GatewayPanel } from "./GatewayPanel";
 
 const PREVIEW_LABELS: Record<AgentFileKind, string> = {
   soul: "SOUL.md",
@@ -95,10 +97,31 @@ export function AgentBuilderWizard() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
 
+  // Ids already on the gateway (from the Connect panel), for collision warnings.
+  const [existingAgentIds, setExistingAgentIds] = useState<Set<string>>(() => new Set());
+
   const resolvedId = useMemo(
     () => (input.id.trim() || slugifyAgentId(input.displayName)).trim(),
     [input.id, input.displayName],
   );
+
+  const idCollision = resolvedId.length > 0 && existingAgentIds.has(resolvedId);
+
+  const handleAgentsLoaded = useCallback((agents: GatewayAgentSummary[]) => {
+    setExistingAgentIds(new Set(agents.map((agent) => agent.agentId)));
+  }, []);
+
+  const handleCloneFromGateway = useCallback((cloned: AgentBuilderInput) => {
+    setInput(cloned);
+    setIdEdited(true);
+    setPersonaId("");
+    setPersonaFields({});
+    setPreviewKind("soul");
+    setErrorMessage(null);
+    setStatusMessage(
+      `Cloned "${cloned.id}" — config, model, and tools are prefilled. Apply a persona or edit the soul fields, then re-generate.`,
+    );
+  }, []);
 
   const previewKinds = useMemo<AgentFileKind[]>(() => {
     const kinds: AgentFileKind[] = ["soul", "identity", "agents", "tools"];
@@ -242,6 +265,9 @@ export function AgentBuilderWizard() {
         />
 
         <div className="wizard">
+          {/* 0 · Gateway connector (optional) */}
+          <GatewayPanel onAgentsLoaded={handleAgentsLoaded} onClone={handleCloneFromGateway} />
+
           {/* 1 · Persona seed */}
           <section className="wizard__section">
             <span className="wizard__label">1 · Seed from a persona (optional)</span>
@@ -335,6 +361,12 @@ export function AgentBuilderWizard() {
                   }}
                   placeholder="research-assistant"
                 />
+                {idCollision && (
+                  <span className="profile-field__warn" role="status">
+                    An agent with id <code>{resolvedId}</code> already exists on the gateway —
+                    installing this bundle will overwrite it.
+                  </span>
+                )}
               </label>
               <label className="profile-field profile-field--wide">
                 <span className="profile-field__label">Description *</span>
@@ -623,6 +655,12 @@ export function AgentBuilderWizard() {
           {errorMessage && (
             <p className="wizard__error" role="alert">
               {errorMessage}
+            </p>
+          )}
+          {idCollision && (
+            <p className="wizard__status wizard__status--warn" role="status">
+              Heads up: <code>{resolvedId}</code> already exists on the gateway — this bundle will
+              overwrite it when installed.
             </p>
           )}
           <div className="startup__actions-row">
