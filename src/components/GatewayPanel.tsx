@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import {
-  DEFAULT_GATEWAY_BASE_URL,
+  defaultGatewayBaseUrl,
   GatewayError,
   gatewayDetailToInput,
   getGatewayAgent,
@@ -20,9 +20,9 @@ interface GatewayPanelProps {
 
 function loadStoredBaseUrl(): string {
   try {
-    return localStorage.getItem(BASE_URL_STORAGE_KEY) ?? DEFAULT_GATEWAY_BASE_URL;
+    return localStorage.getItem(BASE_URL_STORAGE_KEY) ?? defaultGatewayBaseUrl();
   } catch {
-    return DEFAULT_GATEWAY_BASE_URL;
+    return defaultGatewayBaseUrl();
   }
 }
 
@@ -118,7 +118,7 @@ export function GatewayPanel({ onAgentsLoaded, onClone }: GatewayPanelProps) {
                 className="profile-field__input"
                 value={baseUrl}
                 onChange={(event) => setBaseUrl(event.target.value)}
-                placeholder={DEFAULT_GATEWAY_BASE_URL}
+                placeholder={defaultGatewayBaseUrl()}
                 spellCheck={false}
               />
             </label>

@@ -6,8 +6,26 @@ import {
   type IsolationStrategy,
 } from "./agent-builder/index";
 
-/** The default gateway the panel points at (override in the UI). */
+/** The LAN gateway used as a fallback when the app runs standalone (dev server). */
 export const DEFAULT_GATEWAY_BASE_URL = "http://192.168.168.10:5005";
+
+/** Ports the standalone dev/preview server runs on — never a real gateway origin. */
+const DEV_ORIGIN_PORTS = /:(5183|5173|4173|3000)$/;
+
+/**
+ * The gateway URL to default to. When the SPA is served *by* the gateway (as the
+ * embedded extension), the gateway is same-origin — using it avoids CORS entirely.
+ * When running standalone (the Vite dev/preview server), fall back to the LAN gateway.
+ */
+export function defaultGatewayBaseUrl(): string {
+  if (typeof window !== "undefined") {
+    const origin = window.location.origin;
+    if (/^https?:\/\//i.test(origin) && !DEV_ORIGIN_PORTS.test(origin)) {
+      return origin;
+    }
+  }
+  return DEFAULT_GATEWAY_BASE_URL;
+}
 
 /** A row from `GET /api/agents` — the slim list model. */
 export interface GatewayAgentSummary {
