@@ -66,6 +66,34 @@ rebuilding it, put `~/.dotnet` first on `PATH` so the inner Blazor-client `dotne
 publish` uses the same SDK as the outer build (a version mismatch there fails with
 exit 155).
 
+## Portal nav link (Phase 3b)
+
+To surface the tool in the portal's left sidebar, four small edits to the Blazor
+client's `Layout/MainLayout.razor` (in the gateway repo) — the nav is data-driven,
+so adding a key is a supported extension point:
+
+1. A key constant: `public const string AgentBuilder = "agent-builder";` in `NavOrderKeys`.
+2. Add `AgentBuilder` to `NavOrderKeys.DefaultOrder` (it auto-appears — the resolver
+   re-inserts new built-ins without a migration).
+3. A `RenderNavSection` switch case: `NavOrderKeys.AgentBuilder => RenderAgentBuilderNav(),`.
+4. `RenderAgentBuilderNav()` — an anchor that **forces a full navigation** because
+   `/agent-builder` is not a Blazor route:
+   ```razor
+   <a href="/agent-builder" class="sidebar-nav-item" data-testid="nav-agent-builder"
+      @onclick:preventDefault="true" @onclick="NavigateToAgentBuilder">
+       <Icon Name="tools" /><span class="sidebar-nav-label">Agent Builder</span>
+   </a>
+   // Nav.NavigateTo("/agent-builder", forceLoad: true);
+   ```
+
+A plain `<a href>` would be intercepted by the Blazor router and 404; `forceLoad: true`
+does a real browser navigation to the extension-served page.
+
+This edit is in the **Blazor WASM client**, so it requires rebuilding the SignalR
+extension (which republishes the client) and redeploying its `blazor/` assets — not
+just the DLL. Backup on the host: `MainLayout.razor.bak-preagentnav`,
+`blazor.bak-preagentnav`.
+
 ## Deployment note (matched-SDK build)
 
 The gateway host had two SDKs (`/usr/bin/dotnet` 10.0.111 and `~/.dotnet` 10.0.400).
