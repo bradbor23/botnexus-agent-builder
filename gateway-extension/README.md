@@ -38,3 +38,39 @@ project and is picked up by the CLI's deploy step.
 
 No `config.json` change is required: `gateway.extensions` is already enabled and the
 manifest ships `enabled: true`.
+
+## Required portal passthrough (one line)
+
+The SignalR portal extension serves the Blazor app as a catch-all for every path
+except a hardcoded allowlist (`/api`, `/hub`, `/swagger`, `/health`, `/mobile`), so
+it would otherwise shadow `/agent-builder`. Extension middleware order isn't
+deterministic, so the robust fix is to add `/agent-builder` to that allowlist in
+`src/extensions/BotNexus.Extensions.Channels.SignalR/SignalREndpointContributor.cs`:
+
+```csharp
+// Desktop: let API/hub/health/swagger pass through
+if (path.StartsWith("/api/", StringComparison.OrdinalIgnoreCase) ||
+    path.StartsWith("/hub/", StringComparison.OrdinalIgnoreCase) ||
+    path.StartsWith("/swagger", StringComparison.OrdinalIgnoreCase) ||
+    path.Equals("/health", StringComparison.OrdinalIgnoreCase) ||
+    path.StartsWith("/mobile", StringComparison.OrdinalIgnoreCase) ||
+    path.StartsWith("/agent-builder", StringComparison.OrdinalIgnoreCase)) // <-- added
+{
+    await next();
+    return;
+}
+```
+
+This recompiles only the SignalR **C# extension** (not the Blazor WASM client). When
+rebuilding it, put `~/.dotnet` first on `PATH` so the inner Blazor-client `dotnet
+publish` uses the same SDK as the outer build (a version mismatch there fails with
+exit 155).
+
+## Deployment note (matched-SDK build)
+
+The gateway host had two SDKs (`/usr/bin/dotnet` 10.0.111 and `~/.dotnet` 10.0.400).
+Build extensions with `export PATH="$HOME/.dotnet:$PATH"` so nested `dotnet` calls
+resolve to the same SDK. The running gateway is a **detached binary** (no pwsh /
+watchdog present); restart it by stopping the pid on `:5005` and relaunching
+`.../BotNexus.Gateway.Api --urls http://localhost:5005 --environment Development`
+from `~` via `setsid nohup … &`.
