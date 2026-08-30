@@ -1,4 +1,5 @@
 import {
+  buildAgentBundle,
   createEmptyAgentInput,
   defaultAgentToolSelection,
   isThinkingLevel,
@@ -127,6 +128,126 @@ export function getGatewayAgent(
 
 function toIsolationStrategy(value: string | null): IsolationStrategy {
   return value === "subprocess" ? "subprocess" : "in-process";
+}
+
+/** The REST `AgentDescriptor` (camelCase) that `POST /api/agents` deserializes. */
+function buildAgentDescriptor(input: AgentBuilderInput, id: string): Record<string, unknown> {
+  return {
+    agentId: id,
+    displayName: input.displayName.trim(),
+    description: input.description.trim(),
+    modelId: input.model.trim(),
+    apiProvider: input.provider.trim(),
+    kind: "Named",
+    isolationStrategy: input.isolationStrategy,
+    thinking: input.thinking,
+    contextWindow: input.contextWindow,
+    toolIds: [...input.toolIds],
+    memory: { enabled: true, indexing: "auto", promptInjection: "full" },
+    soul: { enabled: true, timezone: "UTC", dayBoundary: "00:00", reflectionOnSeal: false },
+    extensionConfig: {
+      "botnexus-skills": {
+        enabled: true,
+        maxLoadedSkills: 20,
+        allowSkillCreation: false,
+        allowSkillDeletion: false,
+      },
+    },
+  };
+}
+
+async function gatewayPost(
+  baseUrl: string,
+  path: string,
+  bodyObject: unknown,
+  apiKey?: string,
+): Promise<Response> {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    Accept: "application/json",
+  };
+  if (apiKey?.trim()) headers["X-Api-Key"] = apiKey.trim();
+  try {
+    return await fetch(`${normalizeBaseUrl(baseUrl)}${path}`, {
+      method: "POST",
+      mode: "cors",
+      headers,
+      body: JSON.stringify(bodyObject),
+    });
+  } catch {
+    throw new GatewayError(
+      `Couldn't reach the gateway at ${normalizeBaseUrl(baseUrl)}. If it's up, this origin may be ` +
+        `blocked by CORS — serve the app from the gateway, or add "${window.location.origin}" to ` +
+        `gateway.cors.allowedOrigins in config.json.`,
+      "network",
+    );
+  }
+}
+
+/**
+ * Deploys the agent to a running gateway: registers it via the gateway's atomic
+ * `POST /api/agents` (config.json + live registry, no restart), then writes its
+ * SOUL/IDENTITY/AGENTS/TOOLS[/WORLD/USER] markdown into `~/.botnexus/agents/<id>/`
+ * via the Agent Builder extension's file endpoint. On a file-write failure the
+ * registration is rolled back so a half-deployed agent is never left behind.
+ * Throws {@link GatewayError} (409 = the id already exists) on any failure.
+ */
+export async function deployAgentToGateway(
+  baseUrl: string,
+  input: AgentBuilderInput,
+  apiKey?: string,
+): Promise<{ id: string }> {
+  const bundle = buildAgentBundle(input); // validates required fields; throws on gaps
+  const id = bundle.id;
+
+  // 1) Register (authoritative collision check + validation live in the gateway).
+  const register = await gatewayPost(baseUrl, "/api/agents", buildAgentDescriptor(input, id), apiKey);
+  if (register.status === 409) {
+    throw new GatewayError(
+      `An agent "${id}" already exists on the gateway. Choose a different id, or remove the existing agent first.`,
+      "http",
+      409,
+    );
+  }
+  if (!register.ok) {
+    const detail = (await register.text().catch(() => "")).trim();
+    throw new GatewayError(
+      `The gateway rejected the agent (HTTP ${register.status})${detail ? ` — ${detail}` : ""}.`,
+      "http",
+      register.status,
+    );
+  }
+
+  // 2) Write the definition markdown into ~/.botnexus/agents/<id>/.
+  const filesBody: Record<string, string> = {};
+  for (const file of bundle.files) filesBody[file.kind] = file.content;
+
+  const write = await gatewayPost(
+    baseUrl,
+    `/agent-builder/api/agents/${encodeURIComponent(id)}/files`,
+    filesBody,
+    apiKey,
+  );
+  if (!write.ok) {
+    // Roll back the registration so we don't leave a soulless, half-deployed agent.
+    try {
+      await fetch(`${normalizeBaseUrl(baseUrl)}/api/agents/${encodeURIComponent(id)}`, {
+        method: "DELETE",
+        mode: "cors",
+        headers: apiKey?.trim() ? { "X-Api-Key": apiKey.trim() } : undefined,
+      });
+    } catch {
+      // best-effort rollback
+    }
+    const detail = (await write.text().catch(() => "")).trim();
+    throw new GatewayError(
+      `Registered the agent but failed to write its files (rolled back) — HTTP ${write.status}${detail ? ` — ${detail}` : ""}.`,
+      "http",
+      write.status,
+    );
+  }
+
+  return { id };
 }
 
 /**

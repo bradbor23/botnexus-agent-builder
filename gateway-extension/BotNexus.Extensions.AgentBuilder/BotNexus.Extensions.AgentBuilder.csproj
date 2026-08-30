@@ -14,6 +14,8 @@
        extension's home in the gateway repo: src/extensions/BotNexus.Extensions.AgentBuilder/. -->
   <ItemGroup>
     <ProjectReference Include="..\..\gateway\BotNexus.Gateway.Abstractions\BotNexus.Gateway.Abstractions.csproj" />
+    <!-- BotNexusHome.GetAgentDirectory(id) resolves the top-level ~/.botnexus/agents/<id>/ path. -->
+    <ProjectReference Include="..\..\gateway\BotNexus.Gateway.Configuration\BotNexus.Gateway.Configuration.csproj" />
   </ItemGroup>
 
   <!-- The manifest and the prebuilt SPA travel into the build output, which the CLI's

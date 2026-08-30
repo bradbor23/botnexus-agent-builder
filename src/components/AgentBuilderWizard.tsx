@@ -32,7 +32,7 @@ import {
   PROVIDERS,
 } from "../lib/providers";
 import { copyToClipboard, downloadAgentBundle } from "../lib/download";
-import type { GatewayAgentSummary } from "../lib/gateway";
+import { defaultGatewayBaseUrl, deployAgentToGateway, type GatewayAgentSummary } from "../lib/gateway";
 import { WizardHelp } from "./WizardHelp";
 import { GatewayPanel } from "./GatewayPanel";
 
@@ -99,6 +99,7 @@ export function AgentBuilderWizard() {
 
   // Ids already on the gateway (from the Connect panel), for collision warnings.
   const [existingAgentIds, setExistingAgentIds] = useState<Set<string>>(() => new Set());
+  const [deploying, setDeploying] = useState(false);
 
   const resolvedId = useMemo(
     () => (input.id.trim() || slugifyAgentId(input.displayName)).trim(),
@@ -215,6 +216,23 @@ export function AgentBuilderWizard() {
     }
     downloadAgentBundle(bundle);
     setStatusMessage(`Downloaded ${bundle.id}.zip — extract it into your gateway and merge the config snippet.`);
+  }, [input]);
+
+  const handleDeploy = useCallback(async () => {
+    setErrorMessage(null);
+    setStatusMessage(null);
+    setDeploying(true);
+    try {
+      const { id } = await deployAgentToGateway(defaultGatewayBaseUrl(), input);
+      setExistingAgentIds((current) => new Set(current).add(id));
+      setStatusMessage(
+        `Deployed "${id}" — registered and live on the gateway (no restart), with its files written to ~/.botnexus/agents/${id}/.`,
+      );
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Deploy failed.");
+    } finally {
+      setDeploying(false);
+    }
   }, [input]);
 
   return (
@@ -664,13 +682,23 @@ export function AgentBuilderWizard() {
             </p>
           )}
           <div className="startup__actions-row">
-            <button type="button" className="cf-btn cf-btn--primary" onClick={handleDownload}>
+            <button
+              type="button"
+              className="cf-btn cf-btn--primary"
+              onClick={() => void handleDeploy()}
+              disabled={deploying || idCollision}
+            >
+              {deploying ? "Deploying…" : "Deploy to gateway"}
+            </button>
+            <button type="button" className="cf-btn" onClick={handleDownload} disabled={deploying}>
               Download bundle (.zip)
             </button>
           </div>
           <p className="wizard__hint">
-            The <code>.zip</code> contains <code>agents/{resolvedId || "<id>"}/</code>,{" "}
-            <code>config.snippet.json</code>, and <code>INSTALL.md</code>.
+            <strong>Deploy</strong> registers the agent on the gateway (live, no restart) and writes
+            its files to <code>~/.botnexus/agents/{resolvedId || "<id>"}/</code>. <strong>Download</strong>{" "}
+            gives a <code>.zip</code> (<code>agents/{resolvedId || "<id>"}/</code>,{" "}
+            <code>config.snippet.json</code>, <code>INSTALL.md</code>) to install by hand.
           </p>
         </div>
       </div>
