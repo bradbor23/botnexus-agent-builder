@@ -31,9 +31,35 @@ extension/
 at the repo root — a root manifest would drag `src/`, `node_modules/` and `package.json` into
 the extensions tree.
 
-Only the entry assembly ships. `BotNexus.Gateway.Abstractions`, `BotNexus.Gateway.Configuration`
-and the framework are resolved from the **host** by the loader's ALC; shipping our own copies is
-how a binary plugin breaks on a gateway a patch release away.
+### Why not a root manifest, when the reference layout uses one
+
+Both placements are valid, and which is right follows from what the repository *is*:
+
+- A **payload-only** repo — nothing in it but the built extension — keeps the manifest at the
+  root. `.botnexus-plugin/`, `skills/` and `.git/` are excluded, so the root is already clean.
+  The hand-assembled `~/agent-builder-plugin` on the gateway host is this shape, which is why
+  the platform docs show it that way.
+- **This repo is also the source** of the extension. Those three exclusions apply *only* when
+  the manifest sits at the plugin root, so a root manifest here would deploy `src/`,
+  `package.json` and `node_modules/` into the extensions tree.
+
+Hence `extension/`.
+
+### Only the entry assembly ships
+
+`ExtensionAssemblyLoadContext.Load` unifies with the host **categorically**: any assembly the
+gateway has loaded, ships in its base directory, or owns is resolved from the host's default
+context, and the extension's private copy is never consulted. So `BotNexus.Gateway.Abstractions`,
+`BotNexus.Gateway.Configuration`, `BotNexus.Domain` and the framework must not be shipped —
+not because a copy would break the load, but because it is **dead weight** that misleads the
+next reader into thinking the version in it matters.
+
+`.deps.json` does travel with the entry assembly: `AssemblyDependencyResolver` reads it, and a
+genuinely private dependency added later would need it.
+
+> The currently installed copy on the gateway host ships eight such assemblies and works fine —
+> evidence for the unification, and the one thing worth trimming when this repo takes over as
+> the install source.
 
 ## Building the DLL
 
@@ -86,8 +112,12 @@ to edit. Three fields exist specifically for the plugin path:
   widen this only after rebuilding and testing against the newer gateway.
 - **`nav`** — the portal's left-nav entry. It lives on the *extension* manifest, not the plugin
   manifest, so a source-built extension gets nav on the same terms as a plugin-delivered one.
-  `icon` must be a key in the portal's `IconLibrary` (`agents` here); an unknown name silently
+  `icon` must be a key in the portal's `IconLibrary` (`tools` here); an unknown name silently
   falls back to `plugins` rather than failing.
+
+  These values are kept **identical to the copy already deployed on the gateway host**
+  (`path: /agent-builder`, `icon: tools`, `order: 65`) so that installing from this repo does not
+  silently move or restyle an entry operators already use. Change them deliberately or not at all.
 
 ## Updating an installed copy
 

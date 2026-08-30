@@ -4,22 +4,23 @@
   "description": "Serves the BotNexus Agent Builder web app at /agent-builder: persona-seeded generation of agent SOUL/IDENTITY/AGENTS/TOOLS files and config, with clone from existing gateway agents and one-click deploy.",
   "version": "1.0.0",
   "entryAssembly": "BotNexus.Extensions.AgentBuilder.dll",
-  "extensionTypes": ["endpoint-contributor"],
+  "extensionTypes": [
+    "endpoint-contributor"
+  ],
   "enabled": true,
-  "endpointPhase": "after-authentication",
-  "compatibility": {
-    "minAbstractionsVersion": "0.45.0",
-    "maxAbstractionsVersion": "0.46.0"
-  },
   "nav": [
     {
       "id": "agent-builder",
       "label": "Agent Builder",
-      "path": "/agent-builder/",
-      "icon": "agents",
-      "order": 50,
-      "external": true,
-      "fullPage": false
+      "path": "/agent-builder",
+      "icon": "tools",
+      "order": 65,
+      "external": true
     }
-  ]
+  ],
+  "endpointPhase": "after-authentication",
+  "compatibility": {
+    "minAbstractionsVersion": "0.45.0",
+    "maxAbstractionsVersion": "0.46.0"
+  }
 }

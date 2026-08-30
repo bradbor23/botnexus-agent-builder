@@ -19,6 +19,7 @@ repo="$(cd "$here/.." && pwd)"
 src="$repo/gateway-extension/BotNexus.Extensions.AgentBuilder"
 payload="$repo/extension"
 entry_dll="BotNexus.Extensions.AgentBuilder.dll"
+entry_deps="BotNexus.Extensions.AgentBuilder.deps.json"
 
 dotnet_out=""
 while [ $# -gt 0 ]; do
@@ -47,10 +48,13 @@ cp -R "$repo/dist/." "$payload/wwwroot/"
 echo "==> Staging manifest"
 cp "$src/botnexus-extension.json" "$payload/botnexus-extension.json"
 
-# 3. The entry assembly. Only ever this one file: BotNexus.Gateway.Abstractions,
-#    BotNexus.Gateway.Configuration and the framework are resolved from the HOST by
-#    the loader's ALC. Shipping our own copies is exactly how a binary plugin breaks
-#    on a gateway that is a patch release different.
+# 3. The entry assembly and its deps.json. Deliberately NOT the whole build output:
+#    ExtensionAssemblyLoadContext.Load unifies with the host categorically, so any
+#    assembly the gateway ships or has loaded (Gateway.Abstractions, Gateway.Configuration,
+#    Domain, the framework) resolves from the host and a copy here is never consulted.
+#    Shipping them is dead weight that misleads the next reader into thinking the
+#    version in the plugin matters. deps.json travels because AssemblyDependencyResolver
+#    reads it, and a genuinely private dependency added later would need it.
 if [ -n "$dotnet_out" ]; then
   if [ ! -f "$dotnet_out/$entry_dll" ]; then
     echo "error: $entry_dll not found in '$dotnet_out'" >&2
@@ -58,6 +62,11 @@ if [ -n "$dotnet_out" ]; then
   fi
   echo "==> Staging $entry_dll"
   cp "$dotnet_out/$entry_dll" "$payload/$entry_dll"
+  if [ -f "$dotnet_out/$entry_deps" ]; then
+    cp "$dotnet_out/$entry_deps" "$payload/$entry_deps"
+  else
+    echo "    note: $entry_deps not found; continuing without it"
+  fi
 else
   echo "==> Skipping the entry assembly (no --dotnet-out given)"
 fi
