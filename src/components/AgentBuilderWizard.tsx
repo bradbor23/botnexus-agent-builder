@@ -224,7 +224,7 @@ export function AgentBuilderWizard() {
       const { id } = await deployAgentToGateway(defaultGatewayBaseUrl(), input);
       setExistingAgentIds((current) => new Set(current).add(id));
       setStatusMessage(
-        `Deployed "${id}" — registered and live on the gateway (no restart), with its files written to ~/.botnexus/agents/${id}/.`,
+        `Deployed "${id}" — registered and live on the gateway (no restart), with its files written to ~/.botnexus/agents/${id}/workspace/.`,
       );
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "Deploy failed.");
@@ -273,7 +273,7 @@ export function AgentBuilderWizard() {
           ]}
           tip={
             <>
-              Install: drop <code>agents/&lt;id&gt;/</code> into <code>~/.botnexus/agents/</code> and
+              Install: drop <code>agents/&lt;id&gt;/</code> (keeping its <code>workspace/</code> level) into <code>~/.botnexus/agents/</code> and
               merge <code>config.snippet.json</code> into your <code>config.json</code>. The bundle's{" "}
               <code>INSTALL.md</code> has the full steps.
             </>
@@ -684,7 +684,7 @@ export function AgentBuilderWizard() {
           </div>
           <p className="wizard__hint">
             <strong>Deploy</strong> registers the agent on the gateway (live, no restart) and writes
-            its files to <code>~/.botnexus/agents/{resolvedId || "<id>"}/</code>. <strong>Download</strong>{" "}
+            its files to <code>~/.botnexus/agents/{resolvedId || "<id>"}/workspace/</code>. <strong>Download</strong>{" "}
             gives a <code>.zip</code> (<code>agents/{resolvedId || "<id>"}/</code>,{" "}
             <code>config.snippet.json</code>, <code>INSTALL.md</code>) to install by hand.
           </p>

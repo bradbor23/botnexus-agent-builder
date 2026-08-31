@@ -19,7 +19,8 @@ namespace BotNexus.Extensions.AgentBuilder;
 ///
 /// Registration of the agent (config.json + live registry) is done by the SPA against the
 /// gateway's own atomic <c>POST /api/agents</c>; this extension only owns the one thing that
-/// has no REST endpoint — writing the top-level SOUL/IDENTITY/AGENTS/TOOLS markdown files.
+/// has no REST endpoint — writing the SOUL/IDENTITY/AGENTS/TOOLS markdown into the agent's
+/// <c>workspace/</c>, which is where the loader reads them from.
 /// </summary>
 public sealed class AgentBuilderEndpointContributor : IEndpointContributor
 {
@@ -32,7 +33,10 @@ public sealed class AgentBuilderEndpointContributor : IEndpointContributor
         MapStaticSpa(app);
     }
 
-    /// <summary>POST /agent-builder/api/agents/{id}/files — write an agent's definition markdown.</summary>
+    /// <summary>
+/// POST /agent-builder/api/agents/{id}/files — write an agent's definition markdown into
+/// <c>~/.botnexus/agents/&lt;id&gt;/workspace/</c>.
+/// </summary>
     private static void MapDeployApi(WebApplication app)
     {
         app.MapPost($"{RoutePrefix}/api/agents/{{id}}/files",
@@ -42,7 +46,13 @@ public sealed class AgentBuilderEndpointContributor : IEndpointContributor
             if (string.IsNullOrWhiteSpace(id) || !AgentIdPattern.IsMatch(id))
                 return Results.BadRequest(new { error = "Invalid agent id (expected lowercase kebab-case)." });
 
-            var dir = home.GetAgentDirectory(id);
+            // The loader reads prompt files from the agent's workspace/ subdirectory, never
+            // from the agent directory itself. GetAgentDirectory scaffolds that subdirectory on
+            // first creation, and WorkspaceContextBuilder.ResolveWorkspaceDirectory prefers it
+            // whenever it exists - so writing to the agent root produces files that are silently
+            // outvoted by the scaffolded ones. MigrateLegacyWorkspace does not rescue them: it
+            // returns early once workspace/ exists, which it now does.
+            var dir = Path.Combine(home.GetAgentDirectory(id), "workspace");
             try
             {
                 Directory.CreateDirectory(dir);

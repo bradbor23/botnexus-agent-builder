@@ -5,13 +5,13 @@ a persona to seed an agent's personality, set its model, tools, and coordination
 then download a ready-to-install bundle:
 
 ```
-agents/<id>/SOUL.md          # personality, values, communication, boundaries
-agents/<id>/IDENTITY.md      # name, role, expertise, how to address
-agents/<id>/AGENTS.md        # peer agents, coordination, memory notes
-agents/<id>/TOOLS.md         # per-tool usage guidance
-agents/<id>/USER.md          # (optional) user preferences
-config.snippet.json          # the config.json → agents → <id> entry
-INSTALL.md                   # install steps
+agents/<id>/workspace/SOUL.md      # personality, values, communication, boundaries
+agents/<id>/workspace/IDENTITY.md  # name, role, expertise, how to address
+agents/<id>/workspace/AGENTS.md    # peer agents, coordination, memory notes
+agents/<id>/workspace/TOOLS.md     # per-tool usage guidance
+agents/<id>/workspace/USER.md      # (optional) user preferences
+config.snippet.json                # the config.json → agents → <id> entry
+INSTALL.md                         # install steps
 ```
 
 Served inside the gateway, it can also **deploy** an agent directly: the wizard
@@ -43,7 +43,9 @@ a static host, or a BotNexus `endpoint-contributor` mounting it under a subpath.
 
 ## Install a generated agent onto a gateway
 
-1. Copy `agents/<id>/` to `~/.botnexus/agents/<id>/` on the gateway.
+1. Copy `agents/<id>/` to `~/.botnexus/agents/<id>/` on the gateway, keeping the
+   `workspace/` level — the loader reads prompt files from `agents/<id>/workspace/` and
+   ignores anything left at the agent root.
 2. Merge `config.snippet.json` into `~/.botnexus/config.json` under the top-level
    `agents` key (keep your existing agents).
 3. Restart the gateway and confirm the agent appears in `GET /api/agents`.

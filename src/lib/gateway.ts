@@ -187,7 +187,7 @@ async function gatewayPost(
 /**
  * Deploys the agent to a running gateway: registers it via the gateway's atomic
  * `POST /api/agents` (config.json + live registry, no restart), then writes its
- * SOUL/IDENTITY/AGENTS/TOOLS[/USER] markdown into `~/.botnexus/agents/<id>/`
+ * SOUL/IDENTITY/AGENTS/TOOLS[/USER] markdown into `~/.botnexus/agents/<id>/workspace/`
  * via the Agent Builder extension's file endpoint. On a file-write failure the
  * registration is rolled back so a half-deployed agent is never left behind.
  * Throws {@link GatewayError} (409 = the id already exists) on any failure.
@@ -218,7 +218,8 @@ export async function deployAgentToGateway(
     );
   }
 
-  // 2) Write the definition markdown into ~/.botnexus/agents/<id>/.
+  // 2) Write the definition markdown into ~/.botnexus/agents/<id>/workspace/, which is
+  //    where the loader reads prompt files from.
   const filesBody: Record<string, string> = {};
   for (const file of bundle.files) filesBody[file.kind] = file.content;
 

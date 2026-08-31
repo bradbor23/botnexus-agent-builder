@@ -18,14 +18,18 @@ function installReadme(id: string): string {
 This bundle produces a BotNexus agent.
 
 ## 1. Place the agent files
-Copy the \`agents/${id}/\` folder to the gateway:
+Copy the \`agents/${id}/\` folder to the gateway, keeping the \`workspace/\` level:
 
-    ~/.botnexus/agents/${id}/
+    ~/.botnexus/agents/${id}/workspace/
 
-It contains SOUL.md, IDENTITY.md, AGENTS.md, TOOLS.md (and optionally USER.md).
-The gateway loads these by convention, in the order AGENTS, SOUL, TOOLS,
-BOOTSTRAP, IDENTITY, USER. \`workspace/\`, \`data/\` and \`memory\` are created
-automatically at first run.
+The prompt files go in \`workspace/\`, NOT in \`agents/${id}/\` itself. The loader
+reads them from there and prefers that directory whenever it exists, so a file
+left at the agent root is silently ignored in favour of the scaffolded one, with
+nothing logged. \`data/\` and \`memory\` are created automatically at first run.
+
+The bundle contains SOUL.md, IDENTITY.md, AGENTS.md, TOOLS.md (and optionally
+USER.md), already under \`workspace/\`. They are loaded in the order AGENTS, SOUL,
+TOOLS, BOOTSTRAP, IDENTITY, USER — so unpacking the folder as-is is enough.
 
 Environment-wide context does NOT go here: the gateway reads one world file at
 \`~/.botnexus/WORLD.md\`, shared by every agent. A WORLD.md inside an agent's
@@ -45,7 +49,10 @@ or the portal.
 export function zipAgentBundle(bundle: AgentBundle): Uint8Array {
   const files: Record<string, Uint8Array> = {};
   for (const file of bundle.files) {
-    files[`agents/${bundle.id}/${file.filename}`] = strToU8(file.content);
+    // The workspace/ level is required: WorkspaceContextBuilder reads prompt files from
+    // <agent>/workspace/ and only falls back to the agent root when that directory is absent,
+    // which it never is once the gateway has scaffolded the agent.
+    files[`agents/${bundle.id}/workspace/${file.filename}`] = strToU8(file.content);
   }
   files["config.snippet.json"] = strToU8(serializeAgentSnippet(bundle.id, bundle.definition));
   files["INSTALL.md"] = strToU8(installReadme(bundle.id));
