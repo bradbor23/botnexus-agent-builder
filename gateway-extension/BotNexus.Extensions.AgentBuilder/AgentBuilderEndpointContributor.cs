@@ -1,6 +1,8 @@
 using System;
 using System.IO;
+using System.Text.RegularExpressions;
 using BotNexus.Gateway.Abstractions.Extensions;
+using BotNexus.Gateway.Configuration;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
@@ -11,14 +13,66 @@ namespace BotNexus.Extensions.AgentBuilder;
 
 /// <summary>
 /// Serves the prebuilt Agent Builder SPA (static files bundled in <c>wwwroot/</c>) under
-/// <c>/agent-builder</c>. Because the app is served by the gateway itself it is same-origin,
-/// so its read panel calls <c>/api/agents</c> without any CORS configuration.
+/// <c>/agent-builder</c>, and exposes a small deploy API the SPA uses to write an agent's
+/// definition markdown into <c>~/.botnexus/agents/&lt;id&gt;/</c>. Because the app is served by
+/// the gateway itself it is same-origin, so its read/deploy calls need no CORS configuration.
+///
+/// Registration of the agent (config.json + live registry) is done by the SPA against the
+/// gateway's own atomic <c>POST /api/agents</c>; this extension only owns the one thing that
+/// has no REST endpoint — writing the top-level SOUL/IDENTITY/AGENTS/TOOLS markdown files.
 /// </summary>
 public sealed class AgentBuilderEndpointContributor : IEndpointContributor
 {
     private const string RoutePrefix = "/agent-builder";
+    private static readonly Regex AgentIdPattern = new("^[a-z0-9]+(-[a-z0-9]+)*$", RegexOptions.Compiled);
 
     public void MapEndpoints(WebApplication app)
+    {
+        MapDeployApi(app);
+        MapStaticSpa(app);
+    }
+
+    /// <summary>POST /agent-builder/api/agents/{id}/files — write an agent's definition markdown.</summary>
+    private static void MapDeployApi(WebApplication app)
+    {
+        app.MapPost($"{RoutePrefix}/api/agents/{{id}}/files",
+            (string id, AgentFilesRequest body, BotNexusHome home,
+             ILogger<AgentBuilderEndpointContributor> logger) =>
+        {
+            if (string.IsNullOrWhiteSpace(id) || !AgentIdPattern.IsMatch(id))
+                return Results.BadRequest(new { error = "Invalid agent id (expected lowercase kebab-case)." });
+
+            var dir = home.GetAgentDirectory(id);
+            try
+            {
+                Directory.CreateDirectory(dir);
+                var written = 0;
+                written += WriteIfPresent(dir, "SOUL.md", body.Soul);
+                written += WriteIfPresent(dir, "IDENTITY.md", body.Identity);
+                written += WriteIfPresent(dir, "AGENTS.md", body.Agents);
+                written += WriteIfPresent(dir, "TOOLS.md", body.Tools);
+                written += WriteIfPresent(dir, "WORLD.md", body.World);
+                written += WriteIfPresent(dir, "USER.md", body.User);
+                return Results.Ok(new { id, directory = dir, filesWritten = written });
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Agent Builder: failed to write definition files for {Id}", id);
+                return Results.Problem($"Failed to write agent files: {ex.Message}");
+            }
+        });
+    }
+
+    private static int WriteIfPresent(string dir, string filename, string? content)
+    {
+        if (string.IsNullOrWhiteSpace(content))
+            return 0;
+        File.WriteAllText(Path.Combine(dir, filename), content);
+        return 1;
+    }
+
+    /// <summary>Serves the SPA's static files under the route prefix, with SPA fallback.</summary>
+    private static void MapStaticSpa(WebApplication app)
     {
         var extensionDir = Path.GetDirectoryName(typeof(AgentBuilderEndpointContributor).Assembly.Location)!;
         var webRoot = Path.Combine(extensionDir, "wwwroot");
@@ -27,7 +81,7 @@ public sealed class AgentBuilderEndpointContributor : IEndpointContributor
         if (!File.Exists(indexPath))
         {
             app.Services.GetService<ILogger<AgentBuilderEndpointContributor>>()?.LogWarning(
-                "Agent Builder web root not found at {Path} — skipping {Prefix} registration.",
+                "Agent Builder web root not found at {Path} — skipping {Prefix} static registration.",
                 indexPath, RoutePrefix);
             return;
         }
@@ -45,8 +99,15 @@ public sealed class AgentBuilderEndpointContributor : IEndpointContributor
 
             var relative = path[RoutePrefix.Length..];
 
-            // "/agent-builder" (no trailing slash) → redirect so the SPA's relative asset
-            // URLs resolve against "/agent-builder/" rather than "/".
+            // Let the deploy API (and any future /agent-builder/api/* route) reach its endpoint
+            // rather than being captured by the static/SPA-fallback handler below.
+            if (relative.StartsWith("/api/", StringComparison.OrdinalIgnoreCase))
+            {
+                await next();
+                return;
+            }
+
+            // "/agent-builder" (no trailing slash) → redirect so relative asset URLs resolve.
             if (relative.Length == 0)
             {
                 context.Response.Redirect(RoutePrefix + "/", permanent: false);
@@ -72,9 +133,6 @@ public sealed class AgentBuilderEndpointContributor : IEndpointContributor
             }
 
             context.Response.ContentType = GetContentType(relative);
-
-            // Vite fingerprints everything under /assets/, so those are immutable; the
-            // index document must always revalidate so a redeploy is picked up immediately.
             context.Response.Headers.CacheControl =
                 relative.StartsWith("/assets/", StringComparison.OrdinalIgnoreCase)
                     ? "public, max-age=31536000, immutable"
@@ -104,3 +162,12 @@ public sealed class AgentBuilderEndpointContributor : IEndpointContributor
         _ => "application/octet-stream",
     };
 }
+
+/// <summary>The agent definition markdown the SPA sends to the deploy API (camelCase JSON).</summary>
+public sealed record AgentFilesRequest(
+    string? Soul,
+    string? Identity,
+    string? Agents,
+    string? Tools,
+    string? World,
+    string? User);
