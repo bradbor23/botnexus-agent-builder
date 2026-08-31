@@ -1,0 +1,12 @@
+{
+  "name": "botnexus-agent-builder",
+  "description": "A wizard for building BotNexus agents: pick a persona to seed personality, set model, tools and coordination, then deploy the agent to the gateway or download an installable bundle.",
+  "version": "1.0.0",
+  "author": { "name": "bradbor23" },
+  "homepage": "https://github.com/bradbor23/botnexus-agent-builder",
+  "repository": "https://github.com/bradbor23/botnexus-agent-builder.git",
+  "keywords": ["botnexus", "agents", "builder", "authoring", "wizard", "ui"],
+  "extension": {
+    "manifest": "extension/botnexus-extension.json"
+  }
+}

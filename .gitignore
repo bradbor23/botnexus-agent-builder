@@ -13,3 +13,7 @@ dist/
 # Env
 .env
 .env.local
+
+# .NET build output (the extension is built inside a gateway checkout)
+bin/
+obj/

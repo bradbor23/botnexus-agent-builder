@@ -15,10 +15,15 @@ config.snippet.json          # the config.json → agents → <id> entry
 INSTALL.md                   # install steps
 ```
 
-This is a **generator only** — it never writes to a gateway. You download the
-bundle and install it yourself. It is derived from the Agent Builder in
-[ContextForge](https://github.com/bradbor23) and kept in parallel so it can later
-be served inside the BotNexus plugin platform.
+Served inside the gateway, it can also **deploy** an agent directly: the wizard
+registers it via `POST /api/agents` and writes its definition files, with no
+restart. The downloadable bundle remains for installing by hand.
+
+It is derived from the Agent Builder in
+[ContextForge](https://github.com/bradbor23) and kept in parallel.
+
+This repo is also the plugin the BotNexus marketplace installs from — see
+[PACKAGING.md](PACKAGING.md) for why build output is committed and how to rebuild it.
 
 ## Develop
 
