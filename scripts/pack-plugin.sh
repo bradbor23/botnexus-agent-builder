@@ -71,6 +71,12 @@ else
   echo "==> Skipping the entry assembly (no --dotnet-out given)"
 fi
 
+# macOS on an exFAT/SMB volume sprays AppleDouble sidecars into anything it touches.
+# They are gitignored, so they cannot reach the repo - but they would otherwise sit in the
+# payload directory looking like content, and they break git's pack index if one ever lands
+# inside .git. Sweep them rather than explain them.
+find "$payload" -name '._*' -delete 2>/dev/null || true
+
 echo
 if [ -f "$payload/$entry_dll" ]; then
   echo "Payload complete: $payload"
