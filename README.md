@@ -9,7 +9,6 @@ agents/<id>/SOUL.md          # personality, values, communication, boundaries
 agents/<id>/IDENTITY.md      # name, role, expertise, how to address
 agents/<id>/AGENTS.md        # peer agents, coordination, memory notes
 agents/<id>/TOOLS.md         # per-tool usage guidance
-agents/<id>/WORLD.md         # (optional) environment context
 agents/<id>/USER.md          # (optional) user preferences
 config.snippet.json          # the config.json → agents → <id> entry
 INSTALL.md                   # install steps

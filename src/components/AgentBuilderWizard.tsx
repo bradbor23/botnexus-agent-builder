@@ -41,7 +41,6 @@ const PREVIEW_LABELS: Record<AgentFileKind, string> = {
   identity: "IDENTITY.md",
   agents: "AGENTS.md",
   tools: "TOOLS.md",
-  world: "WORLD.md",
   user: "USER.md",
 };
 
@@ -126,10 +125,9 @@ export function AgentBuilderWizard() {
 
   const previewKinds = useMemo<AgentFileKind[]>(() => {
     const kinds: AgentFileKind[] = ["soul", "identity", "agents", "tools"];
-    if (input.world.trim()) kinds.push("world");
     if (input.userPreferences.trim()) kinds.push("user");
     return kinds;
-  }, [input.world, input.userPreferences]);
+  }, [input.userPreferences]);
 
   useEffect(() => {
     if (!previewKinds.includes(previewKind)) setPreviewKind(previewKinds[0]);
@@ -589,16 +587,6 @@ export function AgentBuilderWizard() {
           <section className="wizard__section">
             <span className="wizard__label">6 · Optional context</span>
             <div className="profile-form">
-              <label className="profile-field profile-field--wide">
-                <span className="profile-field__label">World / environment (WORLD.md)</span>
-                <textarea
-                  className="profile-field__input"
-                  value={input.world}
-                  onChange={(event) => patch({ world: event.target.value })}
-                  rows={2}
-                  placeholder="Context about the environment the agent operates in. Leave blank to skip WORLD.md."
-                />
-              </label>
               <label className="profile-field profile-field--wide">
                 <span className="profile-field__label">User preferences (USER.md)</span>
                 <textarea

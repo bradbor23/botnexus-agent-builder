@@ -51,7 +51,6 @@ public sealed class AgentBuilderEndpointContributor : IEndpointContributor
                 written += WriteIfPresent(dir, "IDENTITY.md", body.Identity);
                 written += WriteIfPresent(dir, "AGENTS.md", body.Agents);
                 written += WriteIfPresent(dir, "TOOLS.md", body.Tools);
-                written += WriteIfPresent(dir, "WORLD.md", body.World);
                 written += WriteIfPresent(dir, "USER.md", body.User);
                 return Results.Ok(new { id, directory = dir, filesWritten = written });
             }
@@ -164,10 +163,16 @@ public sealed class AgentBuilderEndpointContributor : IEndpointContributor
 }
 
 /// <summary>The agent definition markdown the SPA sends to the deploy API (camelCase JSON).</summary>
+/// <remarks>
+/// There is deliberately no WORLD.md here. The gateway reads its world file from
+/// <c>~/.botnexus/WORLD.md</c> - one file shared by every agent, injected ahead of everything
+/// else - so a WORLD.md written into an agent's own directory is never loaded. Writing one
+/// produced a file that looked right and did nothing. An older client that still sends a
+/// <c>world</c> property is unaffected: unknown JSON properties are ignored.
+/// </remarks>
 public sealed record AgentFilesRequest(
     string? Soul,
     string? Identity,
     string? Agents,
     string? Tools,
-    string? World,
     string? User);
