@@ -187,7 +187,7 @@ async function gatewayPost(
 /**
  * Deploys the agent to a running gateway: registers it via the gateway's atomic
  * `POST /api/agents` (config.json + live registry, no restart), then writes its
- * SOUL/IDENTITY/AGENTS/TOOLS[/WORLD/USER] markdown into `~/.botnexus/agents/<id>/`
+ * SOUL/IDENTITY/AGENTS/TOOLS[/USER] markdown into `~/.botnexus/agents/<id>/`
  * via the Agent Builder extension's file endpoint. On a file-write failure the
  * registration is rolled back so a half-deployed agent is never left behind.
  * Throws {@link GatewayError} (409 = the id already exists) on any failure.

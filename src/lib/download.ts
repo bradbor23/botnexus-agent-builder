@@ -22,9 +22,14 @@ Copy the \`agents/${id}/\` folder to the gateway:
 
     ~/.botnexus/agents/${id}/
 
-It contains SOUL.md, IDENTITY.md, AGENTS.md, TOOLS.md (and optionally WORLD.md,
-USER.md). The gateway loads these by convention. \`workspace/\`, \`data/\` and
-\`memory\` are created automatically at first run.
+It contains SOUL.md, IDENTITY.md, AGENTS.md, TOOLS.md (and optionally USER.md).
+The gateway loads these by convention, in the order AGENTS, SOUL, TOOLS,
+BOOTSTRAP, IDENTITY, USER. \`workspace/\`, \`data/\` and \`memory\` are created
+automatically at first run.
+
+Environment-wide context does NOT go here: the gateway reads one world file at
+\`~/.botnexus/WORLD.md\`, shared by every agent. A WORLD.md inside an agent's
+folder is not loaded.
 
 ## 2. Register the agent
 Merge \`config.snippet.json\` into \`~/.botnexus/config.json\` — add the object

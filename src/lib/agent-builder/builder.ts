@@ -53,7 +53,6 @@ export function createEmptyAgentInput(overrides: Partial<AgentBuilderInput> = {}
       "Store reusable methods as skills",
       "Track important context in conversation memory",
     ],
-    world: "",
     userPreferences: "",
     ...overrides,
   };
@@ -152,13 +151,6 @@ ${toolBlock}
 `;
 }
 
-function renderWorld(input: AgentBuilderInput): string {
-  return `# World
-
-${input.world.trim()}
-`;
-}
-
 function renderUser(input: AgentBuilderInput): string {
   return `# User
 
@@ -227,9 +219,6 @@ export function buildAgentBundle(
     { kind: "tools", filename: "TOOLS.md", content: overrides.tools ?? renderTools(input) },
   ];
 
-  if (input.world.trim() || overrides.world) {
-    files.push({ kind: "world", filename: "WORLD.md", content: overrides.world ?? renderWorld(input) });
-  }
   if (input.userPreferences.trim() || overrides.user) {
     files.push({ kind: "user", filename: "USER.md", content: overrides.user ?? renderUser(input) });
   }
@@ -248,8 +237,6 @@ export function renderAgentFile(kind: AgentFileKind, input: AgentBuilderInput): 
       return renderAgents(input);
     case "tools":
       return renderTools(input);
-    case "world":
-      return renderWorld(input);
     case "user":
       return renderUser(input);
     default: {

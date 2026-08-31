@@ -64,7 +64,6 @@ export interface AgentBuilderInput {
   memoryNotes: string[];
 
   // Optional files
-  world: string;
   userPreferences: string;
 }
 
@@ -101,14 +100,13 @@ export interface BotNexusAgentDefinition {
 }
 
 /** The markdown files that make up an agent, in write order. */
-export type AgentFileKind = "soul" | "identity" | "agents" | "tools" | "world" | "user";
+export type AgentFileKind = "soul" | "identity" | "agents" | "tools" | "user";
 
 export const AGENT_FILE_KINDS: readonly AgentFileKind[] = [
   "soul",
   "identity",
   "agents",
   "tools",
-  "world",
   "user",
 ];
 
