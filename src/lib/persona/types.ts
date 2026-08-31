@@ -19,7 +19,8 @@ export type PersonaId =
   | "project-manager"
   | "principal-cloud-engineer"
   | "senior-database-administrator"
-  | "cybersecurity-analyst";
+  | "cybersecurity-analyst"
+  | "day-trader";
 
 export const PERSONA_IDS: readonly PersonaId[] = [
   "software-engineer",
@@ -38,6 +39,7 @@ export const PERSONA_IDS: readonly PersonaId[] = [
   "principal-cloud-engineer",
   "senior-database-administrator",
   "cybersecurity-analyst",
+  "day-trader",
 ];
 
 export type PersonaFieldType = "select" | "multiselect";
