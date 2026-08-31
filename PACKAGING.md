@@ -37,8 +37,9 @@ Both placements are valid, and which is right follows from what the repository *
 
 - A **payload-only** repo — nothing in it but the built extension — keeps the manifest at the
   root. `.botnexus-plugin/`, `skills/` and `.git/` are excluded, so the root is already clean.
-  The hand-assembled `~/agent-builder-plugin` on the gateway host is this shape, which is why
-  the platform docs show it that way.
+  The gateway host used to carry a hand-assembled `~/agent-builder-plugin` of this shape, which
+  is why the platform docs show it that way. It has since been deleted — this repo is the only
+  source now — so treat that as an illustration, not a place to look.
 - **This repo is also the source** of the extension. Those three exclusions apply *only* when
   the manifest sits at the plugin root, so a root manifest here would deploy `src/`,
   `package.json` and `node_modules/` into the extensions tree.
@@ -57,9 +58,9 @@ next reader into thinking the version in it matters.
 `.deps.json` does travel with the entry assembly: `AssemblyDependencyResolver` reads it, and a
 genuinely private dependency added later would need it.
 
-> The currently installed copy on the gateway host ships eight such assemblies and works fine —
-> evidence for the unification, and the one thing worth trimming when this repo takes over as
-> the install source.
+> Evidence, from when this repo took over as the install source: the copy it replaced shipped
+> eight such assemblies and served fine, which is the unification working. The payload installed
+> now ships six files and none of those assemblies.
 
 ## Building the DLL
 
@@ -72,25 +73,44 @@ The extension **cannot be built from this repo alone**, by design:
 
 The gateway also sets `TreatWarningsAsErrors`, so it must compile warning-clean.
 
+The gateway repo no longer contains this project — it was removed in bradbor23/botnexus#25,
+because a second copy under `src/extensions/` competes with the installed plugin for the same
+deploy directory and wins by being older. So the build **creates the project directory, builds,
+and deletes it again**. Step 4 is not optional: while that directory exists, a `botnexus build`
+or `serve` will deploy it over the installed plugin.
+
 From a gateway checkout (`$GW`) and this repo (`$PL`):
 
 ```bash
-# 1. Sync the source in. The gateway's vendored copy lags behind this repo.
+# 1. Place the source in the gateway tree. The directory does not exist there; make it.
+EXT="$GW"/src/extensions/BotNexus.Extensions.AgentBuilder
+mkdir -p "$EXT"
 cp "$PL"/gateway-extension/BotNexus.Extensions.AgentBuilder/*.cs \
    "$PL"/gateway-extension/BotNexus.Extensions.AgentBuilder/*.csproj \
-   "$PL"/gateway-extension/BotNexus.Extensions.AgentBuilder/botnexus-extension.json \
-   "$GW"/src/extensions/BotNexus.Extensions.AgentBuilder/
+   "$PL"/gateway-extension/BotNexus.Extensions.AgentBuilder/botnexus-extension.json "$EXT"/
 
-# 2. Build.
-dotnet build "$GW"/src/extensions/BotNexus.Extensions.AgentBuilder/BotNexus.Extensions.AgentBuilder.csproj -c Release
+# 2. Build. Use the SDK that satisfies global.json — see the note below.
+export DOTNET_ROOT="$HOME/.dotnet"; export PATH="$DOTNET_ROOT:$PATH"
+dotnet build "$EXT"/BotNexus.Extensions.AgentBuilder.csproj -c Release
 
 # 3. Assemble the payload (also rebuilds the SPA).
-"$PL"/scripts/pack-plugin.sh --dotnet-out \
-  "$GW"/src/extensions/BotNexus.Extensions.AgentBuilder/bin/Release/net10.0
+"$PL"/scripts/pack-plugin.sh --dotnet-out "$EXT"/bin/Release/net10.0
 
-# 4. Commit the payload.
+# 4. REMOVE the project again, and confirm nothing is left behind.
+rm -rf "$EXT"
+git -C "$GW" status --short          # expect no changes
+find "$GW"/src/extensions -name '*.csproj' | grep AgentBuilder   # expect nothing
+
+# 5. Commit the payload.
 cd "$PL" && git add extension && git commit -m "chore: rebuild plugin payload"
 ```
+
+**The SDK on `PATH` is probably the wrong one.** `global.json` pins 10.0.204 (feature band 2xx)
+and `rollForward: latestMinor` only rolls *forward*, so a distro SDK from band 1xx can never
+satisfy it — `dotnet build` fails with "A compatible .NET SDK was not found" naming the version
+it wanted. The reference host keeps a satisfying SDK in `~/.dotnet`, hence the exports in step 2.
+Do not "fix" this by editing `global.json`. Note also that a non-interactive `ssh host '...'`
+does not source `~/.bashrc`, so a PATH export living there will not apply — set it inline.
 
 Until step 2 has run at least once, the install is refused up front with
 `names entry assembly '...', which is not present in the plugin` — the deployer checks for the
@@ -115,9 +135,10 @@ to edit. Three fields exist specifically for the plugin path:
   `icon` must be a key in the portal's `IconLibrary` (`tools` here); an unknown name silently
   falls back to `plugins` rather than failing.
 
-  These values are kept **identical to the copy already deployed on the gateway host**
-  (`path: /agent-builder`, `icon: tools`, `order: 65`) so that installing from this repo does not
-  silently move or restyle an entry operators already use. Change them deliberately or not at all.
+  These values (`path: /agent-builder`, `icon: tools`, `order: 65`) were chosen to match the
+  copy this repo replaced, so that taking over as the install source did not silently move or
+  restyle an entry operators already used. They are now simply the live values. Change them
+  deliberately or not at all.
 
 ## Updating an installed copy
 
