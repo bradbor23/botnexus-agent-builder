@@ -1,9 +1,23 @@
 import type { PersonaSelection } from "../persona/types";
 
-/** How much intermediate reasoning the agent is allowed. */
-export type ThinkingLevel = "none" | "low" | "medium" | "high";
+/**
+ * How much intermediate reasoning the agent is allowed.
+ *
+ * These are the exact values `AgentDescriptorValidator.TryParseThinking` accepts. There is no
+ * "none": a descriptor carrying one is rejected by `POST /api/agents` with "Thinking 'none' is
+ * not a recognised thinking level", so offering it in the wizard produced a deploy that could
+ * only fail.
+ */
+export type ThinkingLevel = "minimal" | "low" | "medium" | "high" | "xhigh" | "max";
 
-export const THINKING_LEVELS: readonly ThinkingLevel[] = ["none", "low", "medium", "high"];
+export const THINKING_LEVELS: readonly ThinkingLevel[] = [
+  "minimal",
+  "low",
+  "medium",
+  "high",
+  "xhigh",
+  "max",
+];
 
 /** How BotNexus isolates the agent's tool execution. */
 export type IsolationStrategy = "in-process" | "subprocess";
